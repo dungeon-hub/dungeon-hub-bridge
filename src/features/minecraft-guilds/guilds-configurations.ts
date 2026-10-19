@@ -14,12 +14,4 @@ export class GuildsConfigurations {
   public setAllowSelfTransfer(enabled: boolean): void {
     this.configuration.setBoolean('allowSelfTransfer', enabled)
   }
-
-  public getForceTransfer(): boolean {
-    return this.configuration.getBoolean('forceTransfer', false)
-  }
-
-  public setForceTransfer(enabled: boolean): void {
-    this.configuration.setBoolean('forceTransfer', enabled)
-  }
 }

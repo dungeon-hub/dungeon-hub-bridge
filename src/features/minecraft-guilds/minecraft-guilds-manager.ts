@@ -35,9 +35,11 @@ import Invite from './commands/invite.js'
 import Ranks from './commands/ranks.js'
 import SyncGuild from './commands/sync-guild.js'
 import Sync from './commands/sync.js'
+import Transfer from './commands/transfer.js'
 import type { MinecraftGuild, MinecraftGuildMemberGexp, WaitlistEntry } from './database.js'
 import { Database } from './database.js'
 import { DiscordWaitlistInteraction } from './discord-waitlist-interaction.js'
+import { GuildsConfigurations } from './guilds-configurations.js'
 
 export class MinecraftGuildsManager extends Instance implements DisplayableInstance {
   private static readonly MaxGuildMembers = 125
@@ -46,12 +48,14 @@ export class MinecraftGuildsManager extends Instance implements DisplayableInsta
 
   private readonly detectionQueue = new PromiseQueue(1)
   private readonly database: Database
+  public readonly guildsConfigurations: GuildsConfigurations
   private readonly waitlistInteraction: DiscordWaitlistInteraction
   private readonly minecraftDataScrapper: AutoGuildSync
 
   public constructor(application: Application, sqliteManager: SqliteManager) {
     super(application, 'minecraft-guilds-manager')
     this.database = new Database(sqliteManager, this.logger)
+    this.guildsConfigurations = new GuildsConfigurations(application.core.getConfigurationsManager())
     this.waitlistInteraction = new DiscordWaitlistInteraction(
       this.application,
       this,
@@ -77,6 +81,7 @@ export class MinecraftGuildsManager extends Instance implements DisplayableInsta
     this.application.registerChatCommand(new Sync(this.database))
     this.application.registerChatCommand(new SyncGuild(this.database))
     this.application.registerChatCommand(new Invite(this.database))
+    this.application.registerChatCommand(new Transfer(this.database, this.guildsConfigurations))
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     this.application.registerDiscordCommand({
       ...DiscordGuildCommand,

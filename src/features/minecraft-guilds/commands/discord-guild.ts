@@ -65,6 +65,7 @@ import type {
   GuildJoinCondition,
   GuildRoleCondition,
   GuildStayCondition,
+  GuildTransferCondition,
   MinecraftGuild,
   SavedGuildStayCondition
 } from '../database.js'
@@ -155,6 +156,14 @@ export const DiscordGuildCommand = {
           .addSubcommand(addConditionCommand((c) => c.addStringOption(GuildNameOption().setAutocomplete(true))))
           .addSubcommand(removeConditionCommand((c) => c.addStringOption(GuildNameOption().setAutocomplete(true))))
       )
+      .addSubcommandGroup(
+        new SlashCommandSubcommandGroupBuilder()
+          .setName('transfer-conditions')
+          .setDescription('manage conditions to transfer into a specific guild')
+          .addSubcommand(listConditionCommand((c) => c.addStringOption(GuildNameOption().setAutocomplete(true))))
+          .addSubcommand(addConditionCommand((c) => c.addStringOption(GuildNameOption().setAutocomplete(true))))
+          .addSubcommand(removeConditionCommand((c) => c.addStringOption(GuildNameOption().setAutocomplete(true))))
+      )
       .addSubcommand(
         new SlashCommandSubcommandBuilder()
           .setName('purge')
@@ -214,6 +223,12 @@ export async function discordGuildCommandHandler(
     await handleStayConditionAdd(context, database)
   } else if (groupCommand === 'stay-conditions' && subCommand === 'remove') {
     await handleStayConditionRemove(context, database)
+  } else if (groupCommand === 'transfer-conditions' && subCommand === 'list') {
+    await handleTransferConditionList(context, database)
+  } else if (groupCommand === 'transfer-conditions' && subCommand === 'add') {
+    await handleTransferConditionAdd(context, database)
+  } else if (groupCommand === 'transfer-conditions' && subCommand === 'remove') {
+    await handleTransferConditionRemove(context, database)
   } else if (groupCommand === undefined && subCommand === 'purge') {
     await handlePurge(context, hypixel, database)
   } else {
@@ -637,6 +652,57 @@ async function handleSettings(
             setOption: (value) => {
               assert.ok(savedGuild !== undefined)
               manager.setNeededStayConditions(savedGuild.id, value)
+            }
+          }
+        ]
+      },
+      {
+        type: OptionType.EmbedCategory,
+        name: 'Transfer Settings',
+        description: 'Configure how guild transfer evaluates users trying to move into this guild.',
+        options: [
+          {
+            type: OptionType.Boolean,
+            name: 'Transferable',
+            description: 'Whether users may transfer into this guild at all.',
+            getOption: () => {
+              assert.ok(savedGuild !== undefined)
+              return manager.getTransferable(savedGuild.id)
+            },
+            toggleOption: () => {
+              assert.ok(savedGuild !== undefined)
+              manager.setTransferable(savedGuild.id, !manager.getTransferable(savedGuild.id))
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Transfer Priority',
+            description:
+              'When transferring, users are offered the guild with the highest priority they meet the transfer conditions of. Set to **0** for lowest.',
+            min: 0,
+            max: 100,
+            getOption: () => {
+              assert.ok(savedGuild !== undefined)
+              return manager.getTransferPriority(savedGuild.id)
+            },
+            setOption: (value) => {
+              assert.ok(savedGuild !== undefined)
+              manager.setTransferPriority(savedGuild.id, value)
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Required transfer conditions count',
+            description: 'How many transfer conditions a player must meet to be eligible to transfer into the guild.',
+            min: 1,
+            max: 99,
+            getOption: () => {
+              assert.ok(savedGuild !== undefined)
+              return manager.getTransferConditionMode(savedGuild.id)
+            },
+            setOption: (value) => {
+              assert.ok(savedGuild !== undefined)
+              manager.setTransferConditionMode(savedGuild.id, value)
             }
           }
         ]
@@ -1114,6 +1180,79 @@ async function handleStayConditionRemove(
   }
 
   const manager = getStayConditionManager(savedGuild, database)
+  await handleConditionRemove(interaction, context, manager)
+}
+
+function getTransferConditionManager(savedGuild: MinecraftGuild, database: Database): CommandConditionHandler {
+  return {
+    conditions: () => database.getTransferConditions(savedGuild.id),
+    remove: (id) => database.removeTransferCondition(savedGuild.id, id) !== undefined,
+    createOptions: {
+      top: [],
+      bottom: []
+    },
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    add: (handlerId, _: ModalResult, conditionData) => {
+      const condition: GuildTransferCondition = {
+        guildId: savedGuild.id,
+        typeId: handlerId,
+        options: conditionData
+      }
+
+      return database.addTransferCondition(condition)
+    },
+    translationKey: 'guild-transfer'
+  }
+}
+
+async function handleTransferConditionList(
+  context: Readonly<DiscordCommandContext<CommandOrigin.Bridge, OptionMinecraftInstance.None>>,
+  database: Database
+): Promise<void> {
+  const interaction = context.interaction
+  assert.ok(interaction.inCachedGuild())
+
+  const savedGuild = getGuild(context, database)
+  if (savedGuild instanceof Promise) {
+    await savedGuild
+    return
+  }
+
+  const manager = getTransferConditionManager(savedGuild, database)
+  await handleConditionList(interaction, context, manager)
+}
+
+async function handleTransferConditionAdd(
+  context: Readonly<DiscordCommandContext<CommandOrigin.Bridge, OptionMinecraftInstance.None>>,
+  database: Database
+): Promise<void> {
+  const interaction = context.interaction
+  assert.ok(interaction.inCachedGuild())
+
+  const savedGuild = getGuild(context, database)
+  if (savedGuild instanceof Promise) {
+    await savedGuild
+    return
+  }
+
+  const manager = getTransferConditionManager(savedGuild, database)
+  await handleConditionAdd(interaction, context, manager)
+}
+
+async function handleTransferConditionRemove(
+  context: Readonly<DiscordCommandContext<CommandOrigin.Bridge, OptionMinecraftInstance.None>>,
+  database: Database
+): Promise<void> {
+  const interaction = context.interaction
+  assert.ok(interaction.inCachedGuild())
+
+  const savedGuild = getGuild(context, database)
+  if (savedGuild instanceof Promise) {
+    await savedGuild
+    return
+  }
+
+  const manager = getTransferConditionManager(savedGuild, database)
   await handleConditionRemove(interaction, context, manager)
 }
 

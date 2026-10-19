@@ -1376,8 +1376,9 @@ function migrateFrom33to34(database: Database): void {
   )
   database.exec('ALTER TABLE "minecraftGuild" ADD COLUMN "transferConditionMode" INTEGER NOT NULL DEFAULT 1;')
 
-  database.exec('INSERT INTO "configurations" (category, name, value) VALUES (?, ?, ?)').run('guilds', 'allowSelfTransfer', 'false')
-  database.exec('INSERT INTO "configurations" (category, name, value) VALUES (?, ?, ?)').run('guilds', 'forceTransfer', 'false')
+  database
+    .prepare('INSERT INTO "configurations" (category, name, value) VALUES (?, ?, ?)')
+    .run('guilds', 'allowSelfTransfer', 'false')
 }
 
 function findIdentifier(identifiers: string[]): { originInstance: string; userId: string } | undefined {

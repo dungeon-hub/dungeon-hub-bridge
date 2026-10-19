@@ -804,7 +804,9 @@ export class Database {
   ): SavedGuildTransferCondition | undefined {
     const database = this.sqliteManager.getDatabase()
     const transaction = database.transaction(() => {
-      const deleteEntry = database.prepare('DELETE FROM "minecraftGuildTransferConditions" WHERE id = ? AND guildId = ?')
+      const deleteEntry = database.prepare(
+        'DELETE FROM "minecraftGuildTransferConditions" WHERE id = ? AND guildId = ?'
+      )
       const select = database.prepare<[number | bigint, string], SavedGuildTransferCondition>(
         'SELECT * FROM "minecraftGuildTransferConditions" WHERE id = ? AND guildId = ?'
       )
