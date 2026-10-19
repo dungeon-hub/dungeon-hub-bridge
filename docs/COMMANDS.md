@@ -131,12 +131,13 @@ A shorter version can also be used: `!- rtca`
 
 ### Management Chat Commands
 
-| Command       | Description                            |
-| ------------- | -------------------------------------- |
-| `-execute`    | Runs a command directly                |
-| `-ranks`      | List guild ranks requirements          |
-| `-sync`       | Update a user in-game guild rank       |
-| `-sync-guild` | Update ranks of all members in a guild |
+| Command       | Description                                                            |
+| ------------- | ---------------------------------------------------------------------- |
+| `-execute`    | Runs a command directly                                                |
+| `-ranks`      | List guild ranks requirements                                          |
+| `-sync`       | Update a user in-game guild rank                                       |
+| `-sync-guild` | Update ranks of all members in a guild                                 |
+| `-transfer`   | Transfer yourself to a higher guild that you meet the requirements for |
 
 ### Economy Chat Commands
 
