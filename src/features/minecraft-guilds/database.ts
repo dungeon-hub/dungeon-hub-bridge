@@ -774,6 +774,128 @@ export class Database {
     transaction()
   }
 
+  public addTransferCondition(condition: GuildTransferCondition): SavedGuildTransferCondition {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const insert = database.prepare(
+        'INSERT INTO "minecraftGuildTransferConditions" (guildId, typeId, options) VALUES (?, ?, ?)'
+      )
+      const select = database.prepare<[number | bigint], SavedGuildTransferCondition>(
+        'SELECT * FROM "minecraftGuildTransferConditions" WHERE id = ?'
+      )
+
+      const insertResult = insert.run(condition.guildId, condition.typeId, JSON.stringify(condition.options))
+      assert.strictEqual(insertResult.changes, 1)
+      const id = insertResult.lastInsertRowid
+
+      const selectResult = select.get(id)
+      assert.ok(selectResult !== undefined)
+
+      this.deserializeJoinCondition(selectResult)
+      return selectResult
+    })
+
+    return transaction()
+  }
+
+  public removeTransferCondition(
+    guildId: GuildTransferCondition['guildId'],
+    conditionId: SavedGuildTransferCondition['id']
+  ): SavedGuildTransferCondition | undefined {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const deleteEntry = database.prepare('DELETE FROM "minecraftGuildTransferConditions" WHERE id = ? AND guildId = ?')
+      const select = database.prepare<[number | bigint, string], SavedGuildTransferCondition>(
+        'SELECT * FROM "minecraftGuildTransferConditions" WHERE id = ? AND guildId = ?'
+      )
+
+      const condition = select.get(conditionId, guildId)
+      if (condition === undefined) return
+
+      this.deserializeJoinCondition(condition)
+
+      assert.strictEqual(deleteEntry.run(conditionId, guildId).changes, 1)
+      return condition
+    })
+
+    return transaction()
+  }
+
+  public getTransferConditions(guildId: GuildTransferCondition['guildId']): SavedGuildTransferCondition[] {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const select = database.prepare<[typeof guildId], SavedGuildTransferCondition>(
+        'SELECT * FROM "minecraftGuildTransferConditions" WHERE guildId = ?'
+      )
+
+      const conditions = select.all(guildId)
+      for (const condition of conditions) {
+        this.deserializeJoinCondition(condition)
+      }
+
+      return conditions
+    })
+
+    return transaction()
+  }
+
+  public getTransferConditionMode(guildId: string): number {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const select = database.prepare('SELECT transferConditionMode FROM "minecraftGuild" WHERE id = ?')
+      const value = select.pluck(true).get(guildId) as number | string | undefined
+      return value === undefined ? 1 : Number(value) || 1
+    })
+    return transaction()
+  }
+
+  public setTransferConditionMode(guildId: string, needed: number): void {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const update = database.prepare('UPDATE "minecraftGuild" SET transferConditionMode = ? WHERE id = ?')
+      update.run(needed, guildId)
+    })
+    transaction()
+  }
+
+  public getTransferPriority(guildId: string): number {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const select = database.prepare('SELECT transferPriority FROM "minecraftGuild" WHERE id = ?')
+      const value = select.pluck(true).get(guildId) as number | string | undefined
+      return value === undefined ? 0 : Number(value)
+    })
+    return transaction()
+  }
+
+  public setTransferPriority(guildId: string, priority: number): void {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const update = database.prepare('UPDATE "minecraftGuild" SET transferPriority = ? WHERE id = ?')
+      update.run(priority, guildId)
+    })
+    transaction()
+  }
+
+  public getTransferable(guildId: string): boolean {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const select = database.prepare('SELECT transferable FROM "minecraftGuild" WHERE id = ?')
+      const value = select.pluck(true).get(guildId) as number | string | undefined
+      return value === undefined ? true : Number(value) === 1
+    })
+    return transaction()
+  }
+
+  public setTransferable(guildId: string, transferable: boolean): void {
+    const database = this.sqliteManager.getDatabase()
+    const transaction = database.transaction(() => {
+      const update = database.prepare('UPDATE "minecraftGuild" SET transferable = ? WHERE id = ?')
+      update.run(transferable ? 1 : 0, guildId)
+    })
+    transaction()
+  }
+
   public getCanPurgeRanks(guildId: string): string[] {
     const database = this.sqliteManager.getDatabase()
     const transaction = database.transaction(() => {
@@ -955,6 +1077,9 @@ export type SavedGuildJoinCondition = GuildJoinCondition & ConditionId
 
 export type GuildStayCondition = GuildCondition
 export type SavedGuildStayCondition = GuildStayCondition & ConditionId
+
+export type GuildTransferCondition = GuildCondition
+export type SavedGuildTransferCondition = GuildTransferCondition & ConditionId
 
 export type GuildRoleCondition = GuildCondition & { role: string }
 export type SavedGuildRoleCondition = GuildRoleCondition & ConditionId
