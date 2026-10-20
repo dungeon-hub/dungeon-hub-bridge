@@ -84,7 +84,7 @@
     "guild-join": "Guild Join Condition (page {{currentPage, number}} out of {{totalPages, number}}",
     "guild-role": "Guild Role Condition (page {{currentPage, number}} out of {{totalPages, number}}",
     "guild-stay": "Guild Stay Condition (page {{currentPage, number}} out of {{totalPages, number}}",
-    "guild-transfer": "Guild Transfer Condition (page {{currentPage, number}} out of {{totalPages, number}}"
+    "guild-transfer": "Guild Transfer Condition (page {{currentPage, number}} out of {{totalPages, number}})"
   },
   "discord.conditions.list.empty": "__Empty list__",
   "discord.conditions.list.entry": {

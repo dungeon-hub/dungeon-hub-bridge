@@ -114,9 +114,11 @@ export async function resolveGuildTransfer(
 ): Promise<MinecraftGuild | 'current-not-transferable' | 'no-target'> {
   if (!database.getTransferable(currentSavedGuild.id)) return 'current-not-transferable'
 
+  const currentPriority = database.getTransferPriority(currentSavedGuild.id)
   const candidates = database
     .allGuilds()
     .filter((guild) => guild.id !== currentSavedGuild.id)
+    .filter((guild) => database.getTransferPriority(guild.id) > currentPriority)
     .filter((guild) => database.getTransferable(guild.id))
     .filter((guild) => database.getTransferConditions(guild.id).length > 0)
     .toSorted((a, b) => database.getTransferPriority(b.id) - database.getTransferPriority(a.id))

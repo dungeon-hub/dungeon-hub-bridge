@@ -52,13 +52,13 @@ export default class Transfer extends ChatCommandHandler {
     if (typeof target === 'string') return target
     const targetProfile = target.mojangProfile()
 
-    if ((await context.message.user.permission()) === Permission.Anyone) {
+    const isOrdinaryUser = (await context.message.user.permission()) === Permission.Anyone
+    if (isOrdinaryUser) {
       const cooldownResult = this.cooldowns.get(targetProfile.id)
       if (cooldownResult !== undefined && cooldownResult.createdAt + Transfer.Cooldown.toMilliseconds() > currentTime) {
         const againIn = cooldownResult.createdAt + Transfer.Cooldown.toMilliseconds() - currentTime
         return `${context.username}, you can use this command again in ${formatTime(againIn)}.`
       }
-      this.cooldowns.set(targetProfile.id, { createdAt: currentTime })
     }
 
     const guild = await hypixel.getGuildByPlayer(targetProfile.id, currentTime)
@@ -105,31 +105,46 @@ export default class Transfer extends ChatCommandHandler {
       return `Failed to kick you from ${currentSavedGuild.name}: ${reason}`
     }
 
+    if (isOrdinaryUser) {
+      this.cooldowns.set(targetProfile.id, { createdAt: currentTime })
+    }
+
+    const offerSourceGuildRecovery = async (): Promise<void> => {
+      await currentInstance.guildManager.invite(targetProfile.name).catch(() => undefined)
+    }
+
     await sleep(2000)
     const inviteResult = await targetInstance.guildManager.invite(targetProfile.name).catch(() => undefined)
     if (inviteResult === undefined) {
+      await offerSourceGuildRecovery()
       return `You were kicked from ${currentSavedGuild.name} but the invite to ${targetGuild.name} failed. Ask staff for help.`
     }
 
     switch (inviteResult) {
-      case GuildInviteStatus.Joined:
+      case GuildInviteStatus.Joined: {
+        return `${targetProfile.name} transferred from ${currentSavedGuild.name} to ${targetGuild.name}!`
+      }
       case GuildInviteStatus.OnlineInvite:
       case GuildInviteStatus.OfflineInvite: {
-        return `${targetProfile.name} transferred from ${currentSavedGuild.name} to ${targetGuild.name}!`
+        return `${targetProfile.name} was invited to ${targetGuild.name}. They must accept the invite within five minutes.`
       }
       case GuildInviteStatus.AlreadyJoined: {
         return `${targetProfile.name} is already in ${targetGuild.name}.`
       }
       case GuildInviteStatus.GuildFull: {
+        await offerSourceGuildRecovery()
         return `Target guild ${targetGuild.name} filled up before the invite. Ask staff for help.`
       }
       case GuildInviteStatus.NoPermission: {
+        await offerSourceGuildRecovery()
         return `No permission to invite you to ${targetGuild.name}. Ask staff for help.`
       }
       case GuildInviteStatus.PlayerPrivate: {
+        await offerSourceGuildRecovery()
         return `Change your social settings to allow guild invite from anyone. You were kicked from ${currentSavedGuild.name}.`
       }
       default: {
+        await offerSourceGuildRecovery()
         return `Invite to ${targetGuild.name} did not go through. Ask staff for help. You were kicked from ${currentSavedGuild.name}.`
       }
     }

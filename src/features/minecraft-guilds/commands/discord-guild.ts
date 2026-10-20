@@ -664,7 +664,7 @@ async function handleSettings(
           {
             type: OptionType.Boolean,
             name: 'Transferable',
-            description: 'Whether users may transfer into this guild at all.',
+            description: 'Whether users may transfer into or out of this guild.',
             getOption: () => {
               assert.ok(savedGuild !== undefined)
               return manager.getTransferable(savedGuild.id)
