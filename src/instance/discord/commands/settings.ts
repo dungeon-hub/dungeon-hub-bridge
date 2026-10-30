@@ -93,6 +93,7 @@ export default {
         fetchQualityOptions(context.application),
         fetchCommandsOptions(context.application),
         fetchEconomyOptions(context.application),
+        fetchGuildsOptions(context.application),
         fetchLanguageOptions(context.application),
         fetchOtherOptions(context.interaction)
       ]
@@ -899,6 +900,28 @@ function fetchEconomyOptions(application: Application): CategoryOption {
             }
           }
         ]
+      }
+    ]
+  }
+}
+
+function fetchGuildsOptions(application: Application): CategoryOption {
+  const config = application.minecraftGuildsManager.guildsConfigurations
+
+  return {
+    type: OptionType.Category,
+    name: 'Guilds',
+    header: CategoryLabel,
+    options: [
+      {
+        type: OptionType.Boolean,
+        name: `Allow Guild Transfer`,
+        description:
+          'Allow users to transfer between guilds with the `transfer` chat command. Each guild decides via its transfer conditions and priority.',
+        getOption: () => config.getAllowSelfTransfer(),
+        toggleOption: () => {
+          config.setAllowSelfTransfer(!config.getAllowSelfTransfer())
+        }
       }
     ]
   }
